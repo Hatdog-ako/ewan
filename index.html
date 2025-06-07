@@ -54,13 +54,6 @@
 <body>
 
   <h1>Hello Kitty Flappy</h1>
-
-  <!-- Audio for background music -->
-  <audio id="bgMusic" loop autoplay>
-    <source src="https://cdn.pixabay.com/download/audio/2022/03/22/audio_84d7f4f468.mp3?filename=happy-ukulele-12345.mp3" type="audio/mpeg" />
-    Your browser does not support the audio element.
-  </audio>
-
   <canvas id="gameCanvas" width="400" height="600"></canvas>
   <div>
     <button onclick="setSpeed(60)">x1</button>
@@ -74,19 +67,6 @@
 <script>
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
-
-  // Background music element
-  const bgMusic = document.getElementById("bgMusic");
-
-  // Function to change the background music source and play it
-  function changeMusic(src) {
-    bgMusic.pause();
-    bgMusic.src = src;
-    bgMusic.load();
-    bgMusic.play().catch(() => {
-      // Handle play error silently (autoplay may be blocked)
-    });
-  }
 
   // Images (replace URLs with your own if you want)
   const birdImg = new Image();
@@ -145,6 +125,7 @@
   }
 
   function drawPipe(pipe) {
+    // draw pipe top or bottom with pink bow image
     ctx.drawImage(pipeImg, pipe.x, pipe.y, pipe.width, pipe.height);
   }
 
@@ -154,6 +135,7 @@
     ctx.fillText("Score: " + score, 10, 50);
   }
 
+  // Nintendo style Yumi logo at bottom
   function drawYumi() {
     const text = "Yumi";
     const paddingX = 30;
@@ -162,16 +144,19 @@
     ctx.textBaseline = "middle";
     ctx.textAlign = "center";
 
+    // Measure text width
     const textWidth = ctx.measureText(text).width;
 
+    // Calculate rectangle dimensions
     const rectWidth = textWidth + paddingX * 2;
     const rectHeight = 40;
 
     const rectX = canvas.width / 2 - rectWidth / 2;
     const rectY = canvas.height - rectHeight - 20;
 
+    // Draw red rounded rectangle (pill shape)
     const radius = rectHeight / 2;
-    ctx.fillStyle = "#E60012";
+    ctx.fillStyle = "#E60012"; // Nintendo red
 
     ctx.beginPath();
     ctx.moveTo(rectX + radius, rectY);
@@ -186,6 +171,7 @@
     ctx.closePath();
     ctx.fill();
 
+    // Draw white text
     ctx.fillStyle = "white";
     ctx.fillText(text, canvas.width / 2, rectY + rectHeight / 2);
   }
@@ -195,23 +181,29 @@
 
     frameCount++;
 
+    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Gravity effect on bird
     bird.velocity += gravity;
     bird.y += bird.velocity;
 
+    // Draw bird
     drawBird();
 
+    // Every 90 frames, create a new pipe pair
     if (frameCount % 90 === 0) {
       createPipe();
     }
 
+    // Move pipes and draw
     for (let i = 0; i < pipes.length; i++) {
       let p = pipes[i];
       p.x -= 3;
 
       drawPipe(p);
 
+      // Collision detection
       if (
         bird.x < p.x + p.width &&
         bird.x + bird.width > p.x &&
@@ -224,14 +216,17 @@
         return;
       }
 
+      // Score update
       if (!p.passed && p.y === 0 && p.x + p.width < bird.x) {
         score++;
         p.passed = true;
       }
     }
 
+    // Remove off-screen pipes
     pipes = pipes.filter(p => p.x + p.width > 0);
 
+    // Check if bird hits the ground or flies out of top
     if (bird.y + bird.height > canvas.height || bird.y < 0) {
       gameOver = true;
       alert("Game Over! Your score: " + score);
@@ -239,13 +234,17 @@
       return;
     }
 
+    // Draw score
     drawScore();
+
+    // Draw Yumi text at bottom
     drawYumi();
   }
 
   function loop() {
     update();
     if (gameSpeed === 1000) {
+      // max speed: run update many times per frame
       for(let i=0; i<10; i++) update();
       requestAnimationFrame(loop);
     } else {
@@ -255,6 +254,7 @@
     }
   }
 
+  // Controls - click or spacebar to flap
   function flap() {
     bird.velocity = lift;
   }
@@ -267,15 +267,13 @@
 
   canvas.addEventListener("click", flap);
 
+  // Start the game loop
   birdImg.onload = () => {
     pipeImg.onload = () => {
       resetGame();
       loop();
     }
   };
-
-  // Expose changeMusic globally for console or other script usage
-  window.changeMusic = changeMusic;
 </script>
 </body>
 </html>
