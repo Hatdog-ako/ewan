@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hello Kitty Flappy</title>
+  <style>
+    body {
+      margin: 0;
+      background: #ffe6f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: 'Oswald', sans-serif;
+      user-select: none;
+    }
+    canvas {
+      background: #fff0f6 url('https://i.imgur.com/vwb5gmo.jpeg') no-repeat center center;
+      background-size: cover;
+      border: 3px solid #ff69b4;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+    h1 {
+      color: #ff69b4;
+      margin-top: 10px;
+    }
+    button {
+      background: #ff69b4;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      margin: 6px 4px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Oswald', sans-serif;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #ff85c1;
+    }
+    a {
+      margin-top: 10px;
+      color: #ff69b4;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Hello Kitty Flappy</h1>
+
+  <!-- Audio for background music -->
+  <audio id="bgMusic" loop autoplay>
+    <source src="https://cdn.pixabay.com/download/audio/2022/03/22/audio_84d7f4f468.mp3?filename=happy-ukulele-12345.mp3" type="audio/mpeg" />
+    Your browser does not support the audio element.
+  </audio>
+
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div>
+    <button onclick="setSpeed(60)">x1</button>
+    <button onclick="setSpeed(120)">x2</button>
+    <button onclick="setSpeed(180)">x3</button>
+    <button onclick="setSpeed(300)">x5</button>
+    <button onclick="setSpeed(0)">MAX</button>
+  </div>
+  <a href="http://github.com/xviniette/FlappyLearning" target="_blank">GitHub Repository</a>
+
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // Background music element
+  const bgMusic = document.getElementById("bgMusic");
+
+  // Function to change the background music source and play it
+  function changeMusic(src) {
+    bgMusic.pause();
+    bgMusic.src = src;
+    bgMusic.load();
+    bgMusic.play().catch(() => {
+      // Handle play error silently (autoplay may be blocked)
+    });
+  }
+
+  // Images (replace URLs with your own if you want)
+  const birdImg = new Image();
+  birdImg.src = "https://i.imgur.com/lbhtvYv.png"; // Hello Kitty face
+
+  const pipeImg = new Image();
+  pipeImg.src = "https://i.imgur.com/mRck6UB.png"; // Pink bow pipe
+
+  // Constants and variables
+  const gravity = 0.5;
+  const lift = -10;
+  let bird = { x: 80, y: 250, velocity: 0, width: 40, height: 40 };
+  let pipes = [];
+  let pipeWidth = 60;
+  let pipeGap = 140;
+  let frameCount = 0;
+  let gameSpeed = 60; // default speed (fps)
+  let score = 0;
+  let gameOver = false;
+
+  function setSpeed(speed) {
+    if (speed === 0) {
+      gameSpeed = 1000; // max speed (instant)
+    } else {
+      gameSpeed = speed;
+    }
+  }
+
+  function resetGame() {
+    bird.y = 250;
+    bird.velocity = 0;
+    pipes = [];
+    score = 0;
+    gameOver = false;
+  }
+
+  function createPipe() {
+    let pipeTopHeight = Math.floor(Math.random() * 200) + 50;
+    pipes.push({
+      x: canvas.width,
+      y: 0,
+      width: pipeWidth,
+      height: pipeTopHeight,
+      passed: false
+    });
+    pipes.push({
+      x: canvas.width,
+      y: pipeTopHeight + pipeGap,
+      width: pipeWidth,
+      height: canvas.height - pipeTopHeight - pipeGap
+    });
+  }
+
+  function drawBird() {
+    ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+  }
+
+  function drawPipe(pipe) {
+    ctx.drawImage(pipeImg, pipe.x, pipe.y, pipe.width, pipe.height);
+  }
+
+  function drawScore() {
+    ctx.fillStyle = "#ff1493";
+    ctx.font = "32px Oswald";
+    ctx.fillText("Score: " + score, 10, 50);
+  }
+
+  function drawYumi() {
+    const text = "Yumi";
+    const paddingX = 30;
+    const paddingY = 12;
+    ctx.font = "bold 28px Arial Rounded MT Bold, Arial, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "center";
+
+    const textWidth = ctx.measureText(text).width;
+
+    const rectWidth = textWidth + paddingX * 2;
+    const rectHeight = 40;
+
+    const rectX = canvas.width / 2 - rectWidth / 2;
+    const rectY = canvas.height - rectHeight - 20;
+
+    const radius = rectHeight / 2;
+    ctx.fillStyle = "#E60012";
+
+    ctx.beginPath();
+    ctx.moveTo(rectX + radius, rectY);
+    ctx.lineTo(rectX + rectWidth - radius, rectY);
+    ctx.quadraticCurveTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + radius);
+    ctx.lineTo(rectX + rectWidth, rectY + rectHeight - radius);
+    ctx.quadraticCurveTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - radius, rectY + rectHeight);
+    ctx.lineTo(rectX + radius, rectY + rectHeight);
+    ctx.quadraticCurveTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - radius);
+    ctx.lineTo(rectX, rectY + radius);
+    ctx.quadraticCurveTo(rectX, rectY, rectX + radius, rectY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "white";
+    ctx.fillText(text, canvas.width / 2, rectY + rectHeight / 2);
+  }
+
+  function update() {
+    if (gameOver) return;
+
+    frameCount++;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    bird.velocity += gravity;
+    bird.y += bird.velocity;
+
+    drawBird();
+
+    if (frameCount % 90 === 0) {
+      createPipe();
+    }
+
+    for (let i = 0; i < pipes.length; i++) {
+      let p = pipes[i];
+      p.x -= 3;
+
+      drawPipe(p);
+
+      if (
+        bird.x < p.x + p.width &&
+        bird.x + bird.width > p.x &&
+        bird.y < p.y + p.height &&
+        bird.y + bird.height > p.y
+      ) {
+        gameOver = true;
+        alert("Game Over! Your score: " + score);
+        resetGame();
+        return;
+      }
+
+      if (!p.passed && p.y === 0 && p.x + p.width < bird.x) {
+        score++;
+        p.passed = true;
+      }
+    }
+
+    pipes = pipes.filter(p => p.x + p.width > 0);
+
+    if (bird.y + bird.height > canvas.height || bird.y < 0) {
+      gameOver = true;
+      alert("Game Over! Your score: " + score);
+      resetGame();
+      return;
+    }
+
+    drawScore();
+    drawYumi();
+  }
+
+  function loop() {
+    update();
+    if (gameSpeed === 1000) {
+      for(let i=0; i<10; i++) update();
+      requestAnimationFrame(loop);
+    } else {
+      setTimeout(() => {
+        requestAnimationFrame(loop);
+      }, 1000 / gameSpeed);
+    }
+  }
+
+  function flap() {
+    bird.velocity = lift;
+  }
+
+  window.addEventListener("keydown", e => {
+    if (e.code === "Space") {
+      flap();
+    }
+  });
+
+  canvas.addEventListener("click", flap);
+
+  birdImg.onload = () => {
+    pipeImg.onload = () => {
+      resetGame();
+      loop();
+    }
+  };
+
+  // Expose changeMusic globally for console or other script usage
+  window.changeMusic = changeMusic;
+</script>
+</body>
+</html>
